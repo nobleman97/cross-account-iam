@@ -13,3 +13,4 @@ override.tf.json
 terraform.rc
 *.tfvars
 *.tfvars.json
+*.zip
