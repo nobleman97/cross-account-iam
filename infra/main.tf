@@ -17,7 +17,8 @@ resource "aws_iam_role" "cross_account_role" {
 }
 
 resource "aws_iam_role" "access_s3_bucket" {
-  provider           = aws.account_b
+  provider = aws.account_b
+
   name               = "access-s3-bucket"
   assume_role_policy = data.aws_iam_policy_document.allow_role_assumption_a.json
 
@@ -28,8 +29,8 @@ resource "aws_iam_role" "access_s3_bucket" {
 
 # Policies
 resource "aws_iam_policy" "assume_cross_account_role" {
-  name        = "assume-bridge-tf-role"
-  description = "Allows EC2 to assume a role in another AWS account"
+  name        = "assume-bridge-worker-role"
+  description = "Allows AWS services assume a role in another AWS account"
   policy      = data.aws_iam_policy_document.assume_cross_account_role.json
 }
 
@@ -64,7 +65,7 @@ resource "aws_iam_instance_profile" "ec2_profile" {
 }
 
 ##############
-# S3 Bucket
+# S3 Bucket  (in Account B)
 ##############
 module "reporting-bucket" {
   providers = {
@@ -77,7 +78,67 @@ module "reporting-bucket" {
   bucket = local.bucket_name
 }
 
+#################
+# Lambda Function (in Account A)
+#################
 
+resource "aws_lambda_function" "cross_account_s3_lambda" {
+  filename      = "${path.module}/../app/lambda_deployment.zip"
+  function_name = "write-report-to-crossaccount-s3"
+  role          = aws_iam_role.cross_account_role.arn
+  handler       = "lambda_function.lambda_handler"
+  runtime       = "python3.12"
+  timeout       = 30
 
+  environment {
+    variables = {
+      ACCOUNT2_ROLE_ARN = aws_iam_role.access_s3_bucket.arn
+      BUCKET_NAME       = module.reporting-bucket.s3_bucket_id
+      BUCKET_REGION     = module.reporting-bucket.s3_bucket_region
+    }
+  }
+
+  lifecycle {
+    replace_triggered_by = [ 
+        terraform_data.lambda_zip_md5.input
+    ]
+  }
+
+  tags = {
+    Name = "Cross Account S3 Access Lambda"
+  }
+}
+
+#################
+# EventBridge Trigger (5-minute interval)
+#################
+
+resource "aws_cloudwatch_event_rule" "lambda_5min_trigger" {
+  name                = "lambda-5min-trigger"
+  description         = "Trigger Lambda every 5 minutes"
+  schedule_expression = "rate(5 minutes)"
+
+  tags = {
+    Name = "Lambda 5-Minute Trigger"
+  }
+}
+
+resource "aws_cloudwatch_event_target" "lambda_target" {
+  rule      = aws_cloudwatch_event_rule.lambda_5min_trigger.name
+  target_id = "CrossAccountS3Lambda"
+  arn       = aws_lambda_function.cross_account_s3_lambda.arn
+
+  depends_on = [ 
+    aws_lambda_function.cross_account_s3_lambda
+   ]
+}
+
+resource "aws_lambda_permission" "allow_eventbridge" {
+  statement_id  = "AllowExecutionFromEventBridge"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.cross_account_s3_lambda.function_name
+  principal     = "events.amazonaws.com"
+  source_arn    = aws_cloudwatch_event_rule.lambda_5min_trigger.arn
+}
 
 
