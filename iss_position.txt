@@ -1,0 +1,8 @@
+Time: 2025-12-05 16:41:30
+Latitude: 49.9576
+Longitude: -61.9815
+
+Time: 2025-12-05 16:41:49
+Latitude: 50.2644
+Longitude: -60.2028
+
