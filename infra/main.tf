@@ -104,13 +104,30 @@ resource "aws_lambda_function" "cross_account_s3_lambda" {
     ]
   }
 
+  depends_on = [
+    null_resource.create_artifact
+  ]
+
   tags = {
     Name = "Cross Account S3 Access Lambda"
   }
 }
 
+resource "null_resource" "create_artifact" {
+    provisioner "local-exec" {
+        command = <<EOF
+    cd ${path.module}/../app
+    bash create_zip.sh
+    EOF
+    }
+
+    triggers = {
+        lambda_zip_md5 = terraform_data.lambda_zip_md5.input
+    }
+}
+
 #################
-# EventBridge Trigger (5-minute interval)
+# EventBridge Trigger 
 #################
 
 resource "aws_cloudwatch_event_rule" "lambda_5min_trigger" {
