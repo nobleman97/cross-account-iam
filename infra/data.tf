@@ -66,8 +66,8 @@ data "aws_iam_policy_document" "s3_bucket_access" {
 
 data "archive_file" "lambda_zip" {
   type        = "zip"
-  source_dir  = "../app"
-  output_path = "../app/lambda_deployment.zip" # Or "../app/lambda_function.py"
+  source_file  = "../app/lambda_function.py"
+  output_path = "../app/lambda_file.zip"
 }
 
 resource "terraform_data" "lambda_zip_md5" {

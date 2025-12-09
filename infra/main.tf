@@ -78,6 +78,23 @@ module "reporting-bucket" {
   bucket = local.bucket_name
 }
 
+resource "aws_s3_object" "initial_report" {
+  provider = aws.account_b
+  bucket   = module.reporting-bucket.s3_bucket_id
+  key      = "iss_position.txt"
+
+  content = <<EOF
+ISS Location Logs
+===================
+
+EOF
+
+  content_type = "text/plain"
+  acl          = "private"
+
+  depends_on = [module.reporting-bucket]
+}
+
 #################
 # Lambda Function (in Account A)
 #################
