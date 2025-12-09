@@ -81,6 +81,8 @@ terraform apply -var-file ./dev.tfvars
  
 
 
+Here's a video walkthrough of the project...
+
 
 ## ▶️ Video Walkthrough (2 min)
 
