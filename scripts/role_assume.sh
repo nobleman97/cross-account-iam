@@ -1,5 +1,5 @@
 #!/bin/bash
-ROLE_ARN="arn:aws:iam::507119077712:role/access-s3-bucket"
+ROLE_ARN="arn:aws:iam::<target-account-id>:role/access-s3-bucket"
 BUCKET="iss-reporting-24534576df"
 
 echo "Assuming role..."
