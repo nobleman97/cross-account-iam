@@ -6,7 +6,7 @@ locals {
 # IAM resources
 ################
 
-# Roles
+# Account A resources
 resource "aws_iam_role" "cross_account_role" {
   name               = "connect-to-bridge"
   assume_role_policy = data.aws_iam_policy_document.ec2_assume_role.json
@@ -16,6 +16,30 @@ resource "aws_iam_role" "cross_account_role" {
   }
 }
 
+resource "aws_iam_policy" "assume_cross_account_role" {
+  name        = "assume-bridge-worker-role"
+  description = "Allows AWS services assume a role in another AWS account"
+  policy      = data.aws_iam_policy_document.assume_cross_account_role.json
+}
+
+resource "aws_iam_role_policy_attachment" "ec2_assume_cross_account" {
+  role       = aws_iam_role.cross_account_role.name
+  policy_arn = aws_iam_policy.assume_cross_account_role.arn
+}
+
+resource "aws_iam_role_policy_attachment" "add_ssm_access" {
+  role       = aws_iam_role.cross_account_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+}
+
+# Instance Profile
+resource "aws_iam_instance_profile" "ec2_profile" {
+  name = "connect-to-bridge-profile"
+  role = aws_iam_role.cross_account_role.name
+}
+
+
+# Account B resources
 resource "aws_iam_role" "access_s3_bucket" {
   provider = aws.account_b
 
@@ -27,29 +51,11 @@ resource "aws_iam_role" "access_s3_bucket" {
   }
 }
 
-# Policies
-resource "aws_iam_policy" "assume_cross_account_role" {
-  name        = "assume-bridge-worker-role"
-  description = "Allows AWS services assume a role in another AWS account"
-  policy      = data.aws_iam_policy_document.assume_cross_account_role.json
-}
-
 resource "aws_iam_policy" "s3_bucket_access" {
   provider    = aws.account_b
   name        = "s3-bucket-full-access"
   description = "Allows full access to S3 bucket"
   policy      = data.aws_iam_policy_document.s3_bucket_access.json
-}
-
-# Attachments
-resource "aws_iam_role_policy_attachment" "ec2_assume_cross_account" {
-  role       = aws_iam_role.cross_account_role.name
-  policy_arn = aws_iam_policy.assume_cross_account_role.arn
-}
-
-resource "aws_iam_role_policy_attachment" "add_ssm_access" {
-  role       = aws_iam_role.cross_account_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 }
 
 resource "aws_iam_role_policy_attachment" "s3_bucket_access_attachment" {
@@ -58,11 +64,6 @@ resource "aws_iam_role_policy_attachment" "s3_bucket_access_attachment" {
   policy_arn = aws_iam_policy.s3_bucket_access.arn
 }
 
-# Instance Profile
-resource "aws_iam_instance_profile" "ec2_profile" {
-  name = "connect-to-bridge-profile"
-  role = aws_iam_role.cross_account_role.name
-}
 
 ##############
 # S3 Bucket  (in Account B)
