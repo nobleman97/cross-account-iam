@@ -117,8 +117,8 @@ resource "aws_lambda_function" "cross_account_s3_lambda" {
   }
 
   lifecycle {
-    replace_triggered_by = [ 
-        terraform_data.lambda_zip_md5.input
+    replace_triggered_by = [
+      terraform_data.lambda_zip_md5.input
     ]
   }
 
@@ -132,16 +132,16 @@ resource "aws_lambda_function" "cross_account_s3_lambda" {
 }
 
 resource "null_resource" "create_artifact" {
-    provisioner "local-exec" {
-        command = <<EOF
+  provisioner "local-exec" {
+    command = <<EOF
     cd ${path.module}/../app
     bash create_zip.sh
     EOF
-    }
+  }
 
-    triggers = {
-        lambda_zip_md5 = terraform_data.lambda_zip_md5.input
-    }
+  triggers = {
+    lambda_zip_md5 = terraform_data.lambda_zip_md5.input
+  }
 }
 
 #################
@@ -163,9 +163,9 @@ resource "aws_cloudwatch_event_target" "lambda_target" {
   target_id = "CrossAccountS3Lambda"
   arn       = aws_lambda_function.cross_account_s3_lambda.arn
 
-  depends_on = [ 
+  depends_on = [
     aws_lambda_function.cross_account_s3_lambda
-   ]
+  ]
 }
 
 resource "aws_lambda_permission" "allow_eventbridge" {

@@ -66,7 +66,7 @@ data "aws_iam_policy_document" "s3_bucket_access" {
 
 data "archive_file" "lambda_zip" {
   type        = "zip"
-  source_file  = "../app/lambda_function.py"
+  source_file = "../app/lambda_function.py"
   output_path = "../app/lambda_file.zip"
 }
 
